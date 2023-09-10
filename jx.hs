@@ -18,7 +18,7 @@ test4 = "{\"one\" :{ \"two\" : true}, \"four\" : 55, \"six\"    :   \"seven!\"}"
 
 test5 = "[1,2,3  ,  4, 5, {\"one\": true, \"two\" :false}]"
 
-data Stack = Top | ObjKey String | ArrIdx Integer deriving Show
+data StackItem = Top | ObjKey String | ArrIdx Integer deriving Show
 
 parse json = topLevel json
 
@@ -53,16 +53,18 @@ objWantValue stack key (ch:rest)
 
 objReadStr stack key vacc (ch:rest)
   | ch == '\\' = objReadStrEsc stack key (ch:vacc) rest
-  | ch == '"' = (mkKey stack key, reverse $ ch:vacc) : objAfterVal stack rest
+  | ch == '"' = result : objAfterVal stack rest
   | otherwise = objReadStr stack key (ch:vacc) rest
+  where result = (mkKey stack key, reverse $ ch:vacc)
 
 objReadStrEsc stack key vacc (ch:rest) = objReadStr stack key (ch:vacc) rest
 
 objReadBare stack key vacc (ch:rest)
-  | isSpace ch = (mkKey stack key, reverse vacc) : objAfterVal stack rest
-  | ch == '}' = (mkKey stack key, reverse vacc) : dropLevel stack rest
-  | ch == ',' = (mkKey stack key, reverse vacc) : objWantKey stack rest
+  | isSpace ch = result : objAfterVal stack rest
+  | ch == '}' = result : dropLevel stack rest
+  | ch == ',' = result : objWantKey stack rest
   | otherwise = objReadBare stack key (ch:vacc) rest
+  where result = (mkKey stack key, reverse vacc)
 
 objAfterVal stack (ch:rest)
   | isSpace ch = objAfterVal stack rest
@@ -78,16 +80,18 @@ arrWantValue stack idx (ch:rest)
 
 arrReadStr stack idx vacc (ch:rest)
   | ch == '\\' = arrReadStrEsc stack idx (ch:vacc) rest
-  | ch == '"' = (mkKey stack $ show idx, reverse $ ch:vacc) : arrAfterVal stack idx rest
+  | ch == '"' = result : arrAfterVal stack idx rest
   | otherwise = arrReadStr stack idx (ch:vacc) rest
+  where result = (mkKey stack $ show idx, reverse $ ch:vacc)
 
 arrReadStrEsc stack idx vacc (ch:rest) = arrReadStr stack idx (ch:vacc) rest
 
 arrReadBare stack idx vacc (ch:rest)
-  | isSpace ch = (mkKey stack $ show idx, reverse vacc) : arrAfterVal stack idx rest
-  | ch == ']' = (mkKey stack $ show idx, reverse vacc) : dropLevel stack rest
-  | ch == ',' = (mkKey stack $ show idx, reverse vacc) : arrWantValue stack (idx+1) rest
+  | isSpace ch = result : arrAfterVal stack idx rest
+  | ch == ']' = result : dropLevel stack rest
+  | ch == ',' = result : arrWantValue stack (idx+1) rest
   | otherwise = arrReadBare stack idx (ch:vacc) rest
+  where result = (mkKey stack $ show idx, reverse vacc)
 
 arrAfterVal stack idx (ch:rest)
   | isSpace ch = arrAfterVal stack idx rest
