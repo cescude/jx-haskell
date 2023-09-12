@@ -4,7 +4,7 @@ import Data.List
 
 main = do
   json <- getContents
-  mapM_ printLine (parse json)
+  putStr (parse json)
 
 printLine (key, value) = do
   putStr key
@@ -22,7 +22,7 @@ data StackItem = Top | ObjKey String | ArrIdx Integer deriving Show
 
 parse json = topLevel json
 
-topLevel [] = []
+topLevel "" = "" 
 topLevel (ch:rest)
   | ch == '{' = objWantKey [Top] rest
   | ch == '[' = arrWantValue [Top] 0 rest
@@ -53,18 +53,18 @@ objWantValue stack key (ch:rest)
 
 objReadStr stack key vacc (ch:rest)
   | ch == '\\' = objReadStrEsc stack key (ch:vacc) rest
-  | ch == '"' = result : objAfterVal stack rest
+  | ch == '"' = result ++ objAfterVal stack rest
   | otherwise = objReadStr stack key (ch:vacc) rest
-  where result = (mkKey stack key, reverse $ ch:vacc)
+  where result = genLine stack key (reverse $ ch:vacc)
 
 objReadStrEsc stack key vacc (ch:rest) = objReadStr stack key (ch:vacc) rest
 
 objReadBare stack key vacc (ch:rest)
-  | isSpace ch = result : objAfterVal stack rest
-  | ch == '}' = result : dropLevel stack rest
-  | ch == ',' = result : objWantKey stack rest
+  | isSpace ch = result ++ objAfterVal stack rest
+  | ch == '}' = result ++ dropLevel stack rest
+  | ch == ',' = result ++ objWantKey stack rest
   | otherwise = objReadBare stack key (ch:vacc) rest
-  where result = (mkKey stack key, reverse vacc)
+  where result = genLine stack key (reverse vacc)
 
 objAfterVal stack (ch:rest)
   | isSpace ch = objAfterVal stack rest
@@ -80,18 +80,18 @@ arrWantValue stack idx (ch:rest)
 
 arrReadStr stack idx vacc (ch:rest)
   | ch == '\\' = arrReadStrEsc stack idx (ch:vacc) rest
-  | ch == '"' = result : arrAfterVal stack idx rest
+  | ch == '"' = result ++ arrAfterVal stack idx rest
   | otherwise = arrReadStr stack idx (ch:vacc) rest
-  where result = (mkKey stack $ show idx, reverse $ ch:vacc)
+  where result = genLine stack (show idx) (reverse $ ch:vacc)
 
 arrReadStrEsc stack idx vacc (ch:rest) = arrReadStr stack idx (ch:vacc) rest
 
 arrReadBare stack idx vacc (ch:rest)
-  | isSpace ch = result : arrAfterVal stack idx rest
-  | ch == ']' = result : dropLevel stack rest
-  | ch == ',' = result : arrWantValue stack (idx+1) rest
+  | isSpace ch = result ++ arrAfterVal stack idx rest
+  | ch == ']' = result ++ dropLevel stack rest
+  | ch == ',' = result ++ arrWantValue stack (idx+1) rest
   | otherwise = arrReadBare stack idx (ch:vacc) rest
-  where result = (mkKey stack $ show idx, reverse vacc)
+  where result = genLine stack (show idx) (reverse vacc)
 
 arrAfterVal stack idx (ch:rest)
   | isSpace ch = arrAfterVal stack idx rest
@@ -105,6 +105,8 @@ dropLevel (tos:stack) str =
     ObjKey k -> objAfterVal stack str
     ArrIdx i -> arrAfterVal stack i str
 
+genLine stack key val = mkKey stack key ++ "  " ++ val ++ "\n"
+
 mkKey (Top : _) key = key
-mkKey (ObjKey k : stack) key = mkKey stack $ k ++ "." ++ key
-mkKey (ArrIdx i : stack) key = mkKey stack $ (show i) ++ "." ++ key
+mkKey (ObjKey k : stack) key = mkKey stack (k ++ "." ++ key)
+mkKey (ArrIdx i : stack) key = mkKey stack (show i ++ "." ++ key)
