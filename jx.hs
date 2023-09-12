@@ -4,13 +4,13 @@ import Data.List
 
 main = do
   json <- getContents
-  putStr (parse json)
+  putStr $ concat (parse json)
 
 data StackItem = ObjKey String | ArrIdx Integer deriving Show
 
 parse json = topLevel json
 
-topLevel "" = "" 
+topLevel "" = []
 topLevel (ch:rest)
   | ch == '{' = objWantKey [] rest
   | ch == '[' = arrWantValue [] 0 rest
@@ -93,8 +93,8 @@ dropLevel (tos:stack) str =
     ObjKey k -> objAfterVal stack str
     ArrIdx i -> arrAfterVal stack i str
 
-genLine stack key val = mkKey stack key ++ "  " ++ val ++ "\n"
+genLine stack key val = mkKey stack [key] ++ ["  ", val, "\n"]
 
-mkKey (ObjKey k : stack) key = mkKey stack (k ++ "." ++ key)
-mkKey (ArrIdx i : stack) key = mkKey stack (show i ++ "." ++ key)
-mkKey _ key = key
+mkKey (ObjKey k : stack) keys = mkKey stack (k : "." : keys)
+mkKey (ArrIdx i : stack) keys = mkKey stack (show i : "." : keys)
+mkKey _ keys = keys
