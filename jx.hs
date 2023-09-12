@@ -61,6 +61,7 @@ objAfterVal stack (ch:rest)
 
 arrWantValue stack idx (ch:rest)
   | isSpace ch = arrWantValue stack idx rest
+  | ch == ']' = dropLevel stack rest
   | ch == '{' = objWantKey (ArrIdx idx : stack) rest
   | ch == '[' = arrWantValue (ArrIdx idx : stack) 0 rest
   | ch == '"' = arrReadStr stack idx [ch] rest
