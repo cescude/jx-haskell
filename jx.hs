@@ -6,26 +6,14 @@ main = do
   json <- getContents
   putStr (parse json)
 
-printLine (key, value) = do
-  putStr key
-  putStr "    "
-  putStrLn value
-
-test1 = "   {    \"one\"    :  \"two\"    }"
-test2 = "{\"one\":\"two\"}"
-test3 = "{\"one\" :{ \"two\" : true}, \"four\" : 5}"
-test4 = "{\"one\" :{ \"two\" : true}, \"four\" : 55, \"six\"    :   \"seven!\"}"
-
-test5 = "[1,2,3  ,  4, 5, {\"one\": true, \"two\" :false}]"
-
-data StackItem = Top | ObjKey String | ArrIdx Integer deriving Show
+data StackItem = ObjKey String | ArrIdx Integer deriving Show
 
 parse json = topLevel json
 
 topLevel "" = "" 
 topLevel (ch:rest)
-  | ch == '{' = objWantKey [Top] rest
-  | ch == '[' = arrWantValue [Top] 0 rest
+  | ch == '{' = objWantKey [] rest
+  | ch == '[' = arrWantValue [] 0 rest
   | otherwise = topLevel rest
 
 objWantKey stack (ch:rest)
@@ -99,14 +87,14 @@ arrAfterVal stack idx (ch:rest)
   | ch == ',' = arrWantValue stack (idx+1) rest
 
 -- Pop the top of the stack and enter the state machine at the right spot
+dropLevel [] str = topLevel str
 dropLevel (tos:stack) str =
   case tos of
-    Top -> topLevel str
     ObjKey k -> objAfterVal stack str
     ArrIdx i -> arrAfterVal stack i str
 
 genLine stack key val = mkKey stack key ++ "  " ++ val ++ "\n"
 
-mkKey (Top : _) key = key
 mkKey (ObjKey k : stack) key = mkKey stack (k ++ "." ++ key)
 mkKey (ArrIdx i : stack) key = mkKey stack (show i ++ "." ++ key)
+mkKey _ key = key
