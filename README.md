@@ -10,10 +10,15 @@ Interesting that it's implemented like a recursive decent parser, but, due to
 laziness, the runtime behaves more like the char-at-a-time processor I wrote
 for `jx-dlang`. 
 
-Quick comparison of three versions against a 181M test file (dumping stdout to
-/dev/null, to eliminate that aspect):
+Quick comparison of three versions against a 181M test file:
 
-* this one processes it in 13s
-* dlang version is 7.1s
-* zig version is 6.9s
+* this one processes it in 11.07s
+* dlang version is 8.11s
+* zig version is 14.43s
 * nodejs version crashes after 40.9s
+
+Interesting note, testing w/ `>/dev/null` is significantly faster for the zig
+version than testing for `|tail -5`. Since real usage of these programs is to
+actually *view* the results, I think perf testing against `| tail -5` gives
+a nice medium (ie., terminal pushback is minimal, but the program itself
+doesn't try to skip things).
